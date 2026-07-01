@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>My Route — Lift Club JHB</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{--bg:#080808;--s1:#111;--s2:#1a1a1a;--s3:#262626;--border:#2e2e2e;--muted:#666;--dim:#999;--text:#f0f0f0;--white:#fff;--r:10px;--rs:6px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;line-height:1.6}
+.wrap{max-width:640px;margin:0 auto;padding:24px 16px 60px}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:0.04em;color:var(--white);margin-bottom:4px}
+.subtitle{color:var(--muted);font-size:0.85rem;margin-bottom:24px}
+.card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:22px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px}
+.field input{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px;color:var(--text);font-size:0.95rem;font-family:inherit;outline:none}
+.field input:focus{border-color:var(--white)}
+button{cursor:pointer;font-family:inherit;font-weight:700;border:none;border-radius:var(--rs);padding:13px 18px;font-size:0.9rem;width:100%}
+.btn-primary{background:var(--white);color:var(--bg)}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed}
+.msg{margin-top:14px;padding:11px 14px;border-radius:var(--rs);font-size:0.85rem;display:none}
+.msg.show{display:block}
+.msg.success{background:rgba(34,197,94,0.1);border:1px solid #22c55e;color:#4ade80}
+.msg.error{background:rgba(239,68,68,0.1);border:1px solid #ef4444;color:#f87171}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:var(--white);border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+#lockScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;text-align:center}
+#lockScreen .card{width:100%;max-width:340px;text-align:left}
+#appScreen{display:none}
+
+.status-banner{border-radius:var(--r);padding:16px;margin-bottom:16px;border:1px solid var(--border);background:var(--s1)}
+.status-banner.waiting{border-color:#f59e0b;background:rgba(245,158,11,0.08)}
+.status-banner.live{border-color:#22c55e;background:rgba(34,197,94,0.08)}
+.status-title{font-weight:700;font-size:0.95rem;margin-bottom:2px}
+.status-sub{color:var(--dim);font-size:0.8rem}
+.live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:6px;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+#routeMap{height:280px;border-radius:var(--r);margin-bottom:16px;background:#111;border:1px solid var(--border)}
+
+.stop-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px;display:flex;gap:12px}
+.stop-card.done{opacity:0.5}
+.stop-num{width:28px;height:28px;border-radius:50%;background:var(--s3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.8rem;flex-shrink:0}
+.stop-card.done .stop-num{background:#22c55e;color:#000;border-color:#22c55e}
+.stop-body{flex:1;min-width:0}
+.stop-time{font-size:0.72rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:0.05em}
+.stop-name{font-weight:700;color:var(--white);font-size:0.95rem;margin:2px 0 2px}
+.stop-addr{color:var(--dim);font-size:0.82rem;margin-bottom:10px}
+.stop-actions{display:flex;gap:8px;flex-wrap:wrap}
+.stop-actions button, .stop-actions a{flex:1;min-width:90px;text-align:center;text-decoration:none;font-size:0.78rem;padding:9px 10px;border-radius:var(--rs);font-weight:700;border:1px solid var(--border);background:var(--s2);color:var(--text)}
+.stop-actions .btn-waze{background:#33ccff;color:#000;border-color:#33ccff}
+.stop-actions .btn-gmaps{background:#4285F4;color:#fff;border-color:#4285F4}
+.stop-actions .btn-call{background:var(--s2)}
+.stop-actions .btn-done{background:var(--white);color:var(--bg)}
+.stop-actions .btn-done:disabled{opacity:0.4}
+.empty-state{color:var(--muted);font-size:0.85rem;text-align:center;padding:24px}
+.refresh-btn{background:var(--s2);border:1px solid var(--border);color:var(--dim);font-size:0.78rem;font-weight:600;padding:8px 14px;width:auto;margin-bottom:16px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="logo">LIFT CLUB JHB</div>
+  <div class="subtitle">My Route</div>
+
+  <!-- LOCK SCREEN -->
+  <div id="lockScreen">
+    <div class="card">
+      <div class="field">
+        <label>Your Registered Phone Number</label>
+        <input type="tel" id="phoneInput" placeholder="e.g. 082 123 4567" autocomplete="off"/>
+      </div>
+      <button class="btn-primary" id="loginBtn" onclick="login()">View My Route</button>
+      <div class="msg" id="lockMsg"></div>
+    </div>
+  </div>
+
+  <!-- APP SCREEN -->
+  <div id="appScreen">
+    <div id="statusBanner" class="status-banner waiting">
+      <div class="status-title" id="statusTitle">Loading your route...</div>
+      <div class="status-sub" id="statusSub"></div>
+    </div>
+
+    <div id="routeMap"></div>
+
+    <button class="refresh-btn" onclick="loadRoute()">↻ Refresh Route</button>
+
+    <div id="stopsList"><div class="empty-state">Loading stops...</div></div>
+  </div>
+</div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbwPl9LbPp6cp9RSSJo_3LzaDk8qogBc43grfCdgbZzWbm7QBG9ZhGrAF7FficI3MHMZ/exec';
+const TRACKING_LEAD_MINUTES = 30; // tracking begins this many minutes before the first pickup
+const PING_INTERVAL_MS = 15000;   // how often we send the driver's live position
+
+let driverPhone = '';
+let routeStops = [];
+let earliestTime = null;
+let watchId = null;
+let pingTimer = null;
+let rMap, rMarkers = [], rRouteLine, driverMarker;
+
+function login() {
+  const phone = document.getElementById('phoneInput').value.trim();
+  const msg = document.getElementById('lockMsg');
+  const btn = document.getElementById('loginBtn');
+  if (!phone) { msg.textContent = 'Please enter your phone number.'; msg.className = 'msg error show'; return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Loading...';
+
+  fetch(API_URL + '?action=driverRoute&phone=' + encodeURIComponent(phone))
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        driverPhone = phone;
+        document.getElementById('lockScreen').style.display = 'none';
+        document.getElementById('appScreen').style.display = 'block';
+        applyRouteData(data);
+        setInterval(checkTrackingWindow, 30000); // re-check every 30s whether tracking should start
+      } else {
+        msg.textContent = data.error || 'Could not find your route.';
+        msg.className = 'msg error show';
+        btn.disabled = false;
+        btn.textContent = 'View My Route';
+      }
+    })
+    .catch(() => {
+      msg.textContent = 'Network error. Please try again.';
+      msg.className = 'msg error show';
+      btn.disabled = false;
+      btn.textContent = 'View My Route';
+    });
+}
+
+function loadRoute() {
+  fetch(API_URL + '?action=driverRoute&phone=' + encodeURIComponent(driverPhone))
+    .then(r => r.json())
+    .then(data => { if (data.success) applyRouteData(data); })
+    .catch(err => console.error('Failed to refresh route:', err));
+}
+
+function applyRouteData(data) {
+  routeStops = data.stops || [];
+  earliestTime = data.earliestTime;
+  renderStops();
+  drawRouteMap();
+  checkTrackingWindow();
+}
+
+function checkTrackingWindow() {
+  const banner = document.getElementById('statusBanner');
+  const title = document.getElementById('statusTitle');
+  const sub = document.getElementById('statusSub');
+
+  if (!routeStops.length) {
+    banner.className = 'status-banner waiting';
+    title.textContent = 'No pickups scheduled for today';
+    sub.textContent = "You're all clear — nothing on your route today.";
+    stopTracking();
+    return;
+  }
+
+  const remaining = routeStops.filter(s => !s.pickedUp).length;
+  if (remaining === 0) {
+    banner.className = 'status-banner live';
+    title.textContent = '✅ All pickups complete';
+    sub.textContent = 'Great work today!';
+    stopTracking();
+    return;
+  }
+
+  const trackStart = new Date();
+  const [h, m] = (earliestTime || '00:00').split(':').map(Number);
+  trackStart.setHours(h, m - TRACKING_LEAD_MINUTES, 0, 0);
+
+  const now = new Date();
+  if (now >= trackStart) {
+    if (!watchId) startTracking();
+    banner.className = 'status-banner live';
+    title.innerHTML = '<span class="live-dot"></span>Live tracking active';
+    sub.textContent = remaining + ' pickup' + (remaining > 1 ? 's' : '') + ' remaining today';
+  } else {
+    banner.className = 'status-banner waiting';
+    title.textContent = 'First pickup at ' + earliestTime;
+    sub.textContent = 'Tracking starts automatically at ' + formatTime(trackStart) + ' (' + TRACKING_LEAD_MINUTES + ' min before your first pickup)';
+  }
+}
+
+function formatTime(date) {
+  return date.getHours().toString().padStart(2,'0') + ':' + date.getMinutes().toString().padStart(2,'0');
+}
+
+function startTracking() {
+  if (!navigator.geolocation) return;
+  watchId = navigator.geolocation.watchPosition(
+    pos => {
+      updateDriverMarker(pos.coords.latitude, pos.coords.longitude);
+    },
+    err => console.error('Geolocation error:', err),
+    { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
+  );
+  pingTimer = setInterval(() => {
+    navigator.geolocation.getCurrentPosition(pos => {
+      fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'updateDriverLocation', phone: driverPhone, lat: pos.coords.latitude, lng: pos.coords.longitude })
+      }).catch(err => console.error('Location ping failed:', err));
+    });
+  }, PING_INTERVAL_MS);
+}
+
+function stopTracking() {
+  if (watchId) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+  if (pingTimer) { clearInterval(pingTimer); pingTimer = null; }
+}
+
+function renderStops() {
+  const list = document.getElementById('stopsList');
+  if (!routeStops.length) {
+    list.innerHTML = '<div class="empty-state">No pickups scheduled for today.</div>';
+    return;
+  }
+  list.innerHTML = routeStops.map((s, i) => `
+    <div class="stop-card ${s.pickedUp ? 'done' : ''}">
+      <div class="stop-num">${s.pickedUp ? '✓' : i + 1}</div>
+      <div class="stop-body">
+        <div class="stop-time">${escapeHtml(s.scheduledTime || '')}</div>
+        <div class="stop-name">${escapeHtml(s.passengerName || '')}</div>
+        <div class="stop-addr">${escapeHtml(s.pickupAddress || '')} → ${escapeHtml(s.dropoffAddress || '')}</div>
+        <div class="stop-actions">
+          <a class="btn-waze" href="https://waze.com/ul?ll=${s.pickupLat},${s.pickupLng}&navigate=yes" target="_blank">Waze</a>
+          <a class="btn-gmaps" href="https://www.google.com/maps/dir/?api=1&destination=${s.pickupLat},${s.pickupLng}&travelmode=driving" target="_blank">Google Maps</a>
+          <a class="btn-call" href="tel:${escapeHtml(s.passengerPhone || '')}">Call</a>
+          <button class="btn-done" ${s.pickedUp ? 'disabled' : ''} onclick="markPickedUp('${s.orderId}')">${s.pickedUp ? 'Picked Up' : 'Mark Picked Up'}</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function markPickedUp(orderId) {
+  fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'markPickedUp', phone: driverPhone, orderId: orderId })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      const stop = routeStops.find(s => s.orderId === orderId);
+      if (stop) stop.pickedUp = true;
+      renderStops();
+      drawRouteMap();
+      checkTrackingWindow();
+    } else {
+      alert(data.error || 'Failed to update.');
+    }
+  })
+  .catch(() => alert('Network error. Please try again.'));
+}
+
+function escapeHtml(str) {
+  return (str || '').toString().replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+// ───────────── MAP ─────────────
+
+function drawRouteMap() {
+  if (!rMap) {
+    rMap = L.map('routeMap', { zoomControl: true, attributionControl: false });
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 19 }).addTo(rMap);
+  }
+
+  rMarkers.forEach(m => rMap.removeLayer(m));
+  rMarkers = [];
+  if (rRouteLine) { rMap.removeLayer(rRouteLine); rRouteLine = null; }
+
+  const pending = routeStops.filter(s => !s.pickedUp && s.pickupLat && s.pickupLng);
+  if (!pending.length) {
+    if (routeStops.length && routeStops[0].pickupLat) {
+      rMap.setView([routeStops[0].pickupLat, routeStops[0].pickupLng], 12);
+    } else {
+      rMap.setView([-26.2041, 28.0473], 11);
+    }
+    return;
+  }
+
+  pending.forEach((s, i) => {
+    const marker = L.marker([s.pickupLat, s.pickupLng], {
+      icon: L.divIcon({ className: '', html: `<div style="background:#fff;color:#000;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.75rem;border:2px solid #000">${i+1}</div>`, iconSize: [26,26], iconAnchor: [13,13] })
+    }).bindTooltip(s.passengerName, { permanent: false }).addTo(rMap);
+    rMarkers.push(marker);
+  });
+
+  const bounds = pending.map(s => [s.pickupLat, s.pickupLng]);
+  rMap.fitBounds(bounds, { padding: [30, 30] });
+
+  if (pending.length >= 2) {
+    const coordsStr = pending.map(s => `${s.pickupLng},${s.pickupLat}`).join(';');
+    fetch(`https://router.project-osrm.org/route/v1/driving/${coordsStr}?overview=full&geometries=geojson`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.routes && data.routes[0]) {
+          const latlngs = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+          rRouteLine = L.polyline(latlngs, { color: '#fff', weight: 6, opacity: 0.25 }).addTo(rMap);
+          L.polyline(latlngs, { color: '#33ccff', weight: 3, opacity: 0.95 }).addTo(rMap);
+        }
+      })
+      .catch(err => console.error('Route draw failed:', err));
+  }
+}
+
+function updateDriverMarker(lat, lng) {
+  if (!rMap) return;
+  if (!driverMarker) {
+    driverMarker = L.marker([lat, lng], {
+      icon: L.divIcon({ className: '', html: '<div style="background:#22c55e;width:18px;height:18px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 4px rgba(34,197,94,0.3)"></div>', iconSize: [18,18], iconAnchor: [9,9] })
+    }).addTo(rMap);
+  } else {
+    driverMarker.setLatLng([lat, lng]);
+  }
+}
+
+document.getElementById('phoneInput').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+</script>
+</body>
+</html>
